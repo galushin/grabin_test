@@ -32,7 +32,9 @@
 			<Add option="-Wall" />
 			<Add option="-fexceptions" />
 			<Add option="-std=gnu++14" />
+			<Add directory="../include" />
 		</Compiler>
+		<Unit filename="../include/grabin/defs.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>
 			<code_completion />

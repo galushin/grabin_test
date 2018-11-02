@@ -4,7 +4,7 @@
 
 LD = $(CXX)
 
-INC = 
+INC = -I../include
 RESINC = 
 LIBDIR = 
 LIB = 
