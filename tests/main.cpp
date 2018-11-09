@@ -6,6 +6,40 @@
 
 #include <grabin/defs.hpp>
 
+#include <grabin/utility/debug.hpp>
+
+// @todo Перенести в подходящий заголовочный файл
+namespace grabin
+{
+inline namespace v0
+{
+namespace test
+{
+    template <class OStream, class Testable>
+    void run(OStream & os, Testable testable)
+    {
+        try
+        {
+            testable();
+            os << "[PASSED]\n";
+        }
+        catch(std::exception & ex)
+        {
+            os << "[FAILED]: throws exception [" << ex.what() << "]"
+               << " of type [" << grabin::debug::demangle(typeid(ex).name()) << "]\n";
+        }
+        catch(...)
+        {
+            os << "[FAILED]: throws exception of unknown type\n";
+        }
+    }
+}
+// namespace debug
+}
+// namespace v0
+}
+// namespace grabin
+
 #include <iostream>
 
 namespace grabin
@@ -47,7 +81,7 @@ std::terminate. В противном случае ничего не делае�
                                                 (Actual), GRABIN_STRINGIFY(Actual));\
     } while(false)
 
-int main(int argc, char * argv[])
+int main_impl()
 {
     // ОШИБКА компиляции - нет точки с запятой в конце:
     // GRABIN_TERMINATE_IF_NOT_EQUAL(0, 0)
@@ -65,5 +99,37 @@ int main(int argc, char * argv[])
         }
     }
 
+    grabin::test::run(std::cout, [](){});
+    grabin::test::run(std::cout, [](){ struct Local{}; throw Local{}; });
+    grabin::test::run(std::cout, [](){ throw std::runtime_error("Intentional error");});
+
+    // @todo Автоматизировать проверку
+
     return 0;
+}
+
+#include <cstdlib>
+
+/* Эта функция запускает "настоящую" основную функцию (main_impl) и перехватывает все возникающие
+в ней исключения.
+
+Корректность этой функции проверяется обзором, а не тестируется.
+*/
+int main()
+{
+    try
+    {
+        return main_impl();
+    }
+    catch(std::exception & ex)
+    {
+        std::cerr << "Uncaught exception: [" << ex.what() << "]"
+                  << " of type [" << grabin::debug::demangle(typeid(ex).name()) << "]\n";
+        return EXIT_FAILURE;
+    }
+    catch(...)
+    {
+        std::cerr << "Uncaught exception of unknown type\n";
+        return EXIT_FAILURE;
+    }
 }
