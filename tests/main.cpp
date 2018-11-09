@@ -81,7 +81,7 @@ std::terminate. В противном случае ничего не делае�
                                                 (Actual), GRABIN_STRINGIFY(Actual));\
     } while(false)
 
-int main_impl()
+int main_impl(int argc, char * argv[])
 {
     // ОШИБКА компиляции - нет точки с запятой в конце:
     // GRABIN_TERMINATE_IF_NOT_EQUAL(0, 0)
@@ -115,11 +115,11 @@ int main_impl()
 
 Корректность этой функции проверяется обзором, а не тестируется.
 */
-int main()
+int main(int argc, char * argv[])
 {
     try
     {
-        return main_impl();
+        return main_impl(argc, argv);
     }
     catch(std::exception & ex)
     {
