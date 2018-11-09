@@ -42,14 +42,28 @@ std::terminate. В противном случае ничего не делае�
 тесами, поведение должно проверяться вручную.
 */
 #define GRABIN_TERMINATE_IF_NOT_EQUAL(Actual, Expected)\
-    { ::grabin::test::terminate_if_not_equal(__FILE__, __LINE__,\
-                                             (Expected), GRABIN_STRINGIFY(Expected),\
-                                             (Actual), GRABIN_STRINGIFY(Actual)); }
+    do { ::grabin::test::terminate_if_not_equal(__FILE__, __LINE__,\
+                                                (Expected), GRABIN_STRINGIFY(Expected),\
+                                                (Actual), GRABIN_STRINGIFY(Actual));\
+    } while(false)
 
-int main()
+int main(int argc, char * argv[])
 {
+    // ОШИБКА компиляции - нет точки с запятой в конце:
+    // GRABIN_TERMINATE_IF_NOT_EQUAL(0, 0)
     GRABIN_TERMINATE_IF_NOT_EQUAL(0, 0);
-    // Will FAIL: GRABIN_TERMINATE_IF_NOT_EQUAL(0, 1);
+
+    for(auto i = 1; i < argc; ++ i)
+    {
+        {
+            auto const option = std::string("--test_terminate_if_not_equal");
+
+            if(option.compare(argv[i]) == 0)
+            {
+                GRABIN_TERMINATE_IF_NOT_EQUAL(0, 1);
+            }
+        }
+    }
 
     return 0;
 }
