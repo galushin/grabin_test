@@ -6,40 +6,6 @@
 
 #include <grabin/defs.hpp>
 
-#include <grabin/utility/debug.hpp>
-
-// @todo Перенести в подходящий заголовочный файл
-namespace grabin
-{
-inline namespace v0
-{
-namespace test
-{
-    template <class OStream, class Testable>
-    void run(OStream & os, Testable testable)
-    {
-        try
-        {
-            testable();
-            os << "[PASSED]\n";
-        }
-        catch(std::exception & ex)
-        {
-            os << "[FAILED]: throws exception [" << ex.what() << "]"
-               << " of type [" << grabin::debug::demangle(typeid(ex).name()) << "]\n";
-        }
-        catch(...)
-        {
-            os << "[FAILED]: throws exception of unknown type\n";
-        }
-    }
-}
-// namespace debug
-}
-// namespace v0
-}
-// namespace grabin
-
 #include <iostream>
 
 namespace grabin
@@ -77,9 +43,12 @@ std::terminate. В противном случае ничего не делае�
 */
 #define GRABIN_TERMINATE_IF_NOT_EQUAL(Actual, Expected)\
     do { ::grabin::test::terminate_if_not_equal(__FILE__, __LINE__,\
-                                                (Expected), GRABIN_STRINGIFY(Expected),\
-                                                (Actual), GRABIN_STRINGIFY(Actual));\
+                                                (Actual), GRABIN_STRINGIFY(Actual),\
+                                                (Expected), GRABIN_STRINGIFY(Expected));\
     } while(false)
+
+#include <grabin/test/run.hpp>
+#include <sstream>
 
 int main_impl(int argc, char * argv[])
 {
@@ -99,11 +68,37 @@ int main_impl(int argc, char * argv[])
         }
     }
 
-    grabin::test::run(std::cout, [](){});
-    grabin::test::run(std::cout, [](){ struct Local{}; throw Local{}; });
-    grabin::test::run(std::cout, [](){ throw std::runtime_error("Intentional error");});
+    // Тестируем grabin::test::run
+    {
+        std::ostringstream os;
+        std::ostringstream os_expected;
 
-    // @todo Автоматизировать проверку
+        grabin::test::run(os, [](){});
+        os_expected << "[PASSED]\n";
+
+        grabin::test::run(os, [](){ struct Local{}; throw Local{}; });
+        os_expected << "[FAILED]: throws exception of unknown type\n";
+
+        grabin::test::run(os, [](){ throw std::runtime_error("Intentional error");});
+        os_expected << "[FAILED]: throws exception of type [std::runtime_error] "
+                    << "with message [Intentional error]\n";
+
+        grabin::test::run(os, [](){ return true; });
+        os_expected << "[PASSED]\n";
+
+        grabin::test::run(os, [](){ return false; });
+        os_expected << "[FAILED]: returns [FALSE]\n";
+
+        grabin::test::run(os, [](){ struct Local{}; throw Local{}; return true; });
+        os_expected << "[FAILED]: throws exception of unknown type\n";
+
+        grabin::test::run(os, [](){ throw std::runtime_error("Intentional error"); return true; });
+        os_expected << "[FAILED]: throws exception of type [std::runtime_error] "
+                    << "with message [Intentional error]\n";
+
+        GRABIN_TERMINATE_IF_NOT_EQUAL(os.str(), os_expected.str());
+    }
+
 
     return 0;
 }
@@ -123,7 +118,7 @@ int main(int argc, char * argv[])
     }
     catch(std::exception & ex)
     {
-        std::cerr << "Uncaught exception: [" << ex.what() << "]"
+        std::cerr << "Uncaught exception with message [" << ex.what() << "]"
                   << " of type [" << grabin::debug::demangle(typeid(ex).name()) << "]\n";
         return EXIT_FAILURE;
     }

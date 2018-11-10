@@ -16,7 +16,8 @@
 #ifdef GRABIN_COMPILER_GCC_OR_MINGW
     #include <cxxabi.h>
     #include <cstdlib>
-#endif // GRABIN_COMPILER_GCC_OR_MINGW
+#endif
+// GRABIN_COMPILER_GCC_OR_MINGW
 
 #include <memory>
 #include <string>
@@ -30,21 +31,27 @@ namespace debug
 #ifdef GRABIN_COMPILER_GCC_OR_MINGW
     std::string demangle(char const * str)
     {
-        // @todo Проверять status
-        // @todo Нет ли нарушений безопасности при исключениях?
+        using Holder = std::unique_ptr<char, void(*)(void*)>;
 
         int status = 0;
-        auto realname = abi::__cxa_demangle(str, 0, 0, &status);
-        std::string result(realname);
-        free(realname);
-        return result;
+        Holder holder(abi::__cxa_demangle(str, 0, 0, &status), &std::free);
+
+        if(status == 0)
+        {
+            return {holder.get()};
+        }
+        else
+        {
+            return {str};
+        }
     }
 #else
     std::string demangle(char const * str)
     {
-        return str;
+        return {str};
     }
-#endif // GRABIN_COMPILER_GCC_OR_MINGW
+#endif
+// GRABIN_COMPILER_GCC_OR_MINGW
 }
 // namespace debug
 }

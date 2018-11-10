@@ -36,6 +36,7 @@
 		</Compiler>
 		<Unit filename="../include/grabin/config.hpp" />
 		<Unit filename="../include/grabin/defs.hpp" />
+		<Unit filename="../include/grabin/test/run.hpp" />
 		<Unit filename="../include/grabin/utility/debug.hpp" />
 		<Unit filename="main.cpp" />
 		<Extensions>

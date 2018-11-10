@@ -19,6 +19,5 @@
     #define GRABIN_COMPILER_GCC_OR_MINGW
 #endif
 
-
 #endif
 // Z_GRABIN_CONFIG_HPP_INCLUDED
