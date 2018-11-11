@@ -43,11 +43,14 @@ std::terminate. В противном случае ничего не делае�
 */
 #define GRABIN_TERMINATE_IF_NOT_EQUAL(Actual, Expected)\
     do { ::grabin::test::terminate_if_not_equal(__FILE__, __LINE__,\
-                                                (Expected), GRABIN_STRINGIFY(Expected),\
-                                                (Actual), GRABIN_STRINGIFY(Actual));\
+                                                (Actual), GRABIN_STRINGIFY(Actual),\
+                                                (Expected), GRABIN_STRINGIFY(Expected));\
     } while(false)
 
-int main(int argc, char * argv[])
+#include <grabin/test/run.hpp>
+#include <sstream>
+
+int main_impl(int argc, char * argv[])
 {
     // ОШИБКА компиляции - нет точки с запятой в конце:
     // GRABIN_TERMINATE_IF_NOT_EQUAL(0, 0)
@@ -65,5 +68,63 @@ int main(int argc, char * argv[])
         }
     }
 
+    // Тестируем grabin::test::run
+    {
+        std::ostringstream os;
+        std::ostringstream os_expected;
+
+        grabin::test::run(os, [](){});
+        os_expected << "[PASSED]\n";
+
+        grabin::test::run(os, [](){ struct Local{}; throw Local{}; });
+        os_expected << "[FAILED]: throws exception of unknown type\n";
+
+        grabin::test::run(os, [](){ throw std::runtime_error("Intentional error");});
+        os_expected << "[FAILED]: throws exception of type [std::runtime_error] "
+                    << "with message [Intentional error]\n";
+
+        grabin::test::run(os, [](){ return true; });
+        os_expected << "[PASSED]\n";
+
+        grabin::test::run(os, [](){ return false; });
+        os_expected << "[FAILED]: returns [FALSE]\n";
+
+        grabin::test::run(os, [](){ struct Local{}; throw Local{}; return true; });
+        os_expected << "[FAILED]: throws exception of unknown type\n";
+
+        grabin::test::run(os, [](){ throw std::runtime_error("Intentional error"); return true; });
+        os_expected << "[FAILED]: throws exception of type [std::runtime_error] "
+                    << "with message [Intentional error]\n";
+
+        GRABIN_TERMINATE_IF_NOT_EQUAL(os.str(), os_expected.str());
+    }
+
+
     return 0;
+}
+
+#include <cstdlib>
+
+/* Эта функция запускает "настоящую" основную функцию (main_impl) и перехватывает все возникающие
+в ней исключения.
+
+Корректность этой функции проверяется обзором, а не тестируется.
+*/
+int main(int argc, char * argv[])
+{
+    try
+    {
+        return main_impl(argc, argv);
+    }
+    catch(std::exception & ex)
+    {
+        std::cerr << "Uncaught exception with message [" << ex.what() << "]"
+                  << " of type [" << grabin::debug::demangle(typeid(ex).name()) << "]\n";
+        return EXIT_FAILURE;
+    }
+    catch(...)
+    {
+        std::cerr << "Uncaught exception of unknown type\n";
+        return EXIT_FAILURE;
+    }
 }
